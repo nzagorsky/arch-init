@@ -4,14 +4,14 @@ read -p "Enter your username" user
 HOSTNAME=$user-pc
 USERNAME=$user
 
-
+# Add user and set passwords
 useradd -m -G wheel -s /bin/bash $USERNAME
 echo "Setting password for ROOT"
 passwd
 echo "Setting password for $USERNAME"
 passwd $USERNAME
 
-# Clock
+# Setup clock
 ln -sf /usr/share/zoneinfo/$ZONE /etc/localtime
 hwclock --systohc
 
@@ -27,17 +27,17 @@ echo $HOSTNAME > /etc/hostname
 grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-
 # Sudo
 echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 usermod -aG docker $USERNAME
 
-# mkinitcpio -P
-
 # Enable services
-systemctl enable gdm
-systemctl enable bluetooth || echo "No bluetooth"
+systemctl enable gdm 2> /dev/null || test 1
+systemctl enable bluetooth 2> /dev/null || test 1
 systemctl enable systemd-networkd
 systemctl enable systemd-resolved
 systemctl enable NetworkManager.service
 systemctl enable docker
+
+echo "Setup is finished"
+echo "Exiting chroot"

@@ -4,8 +4,14 @@
 
 set -e
 
-
-DISK="/dev/sda"
+echo "Prior to running this script please partition disk like following"
+echo "EFI partition: /dev/sda1"
+echo "swap partition: /dev/sda2"
+echo "root partition: /dev/sda3"
+read -p "Now enter disk root name (example /dev/sda): \n>>> " DISK
+echo "Will be using ${DISK}"
+echo "Disk will be wiped in 10 seconds. Press Ctrl + C if you're not sure."
+sleep 10
 
 EFI_NUMBER=1
 SWAP_NUMBER=2
@@ -13,12 +19,12 @@ ROOT_NUMBER=3
 ZONE="Europe/Moscow"
 POST_PATH="/root/arch-post.sh"
 
-cat $POST_PATH > /dev/null  # Ensure post is present
+# Ensure arch-post is present
+cat $POST_PATH > /dev/null
 
-# Cleanup
-umount -R /mnt || echo Not mounted
-swapoff -a
-
+# Cleanup from previous runs if there were any.
+umount -R /mnt || test 1
+swapoff -a || test 1
 
 timedatectl set-ntp true
 
@@ -28,10 +34,13 @@ mkfs.fat -F 32 $DISK$EFI_NUMBER
 mkswap $DISK$SWAP_NUMBER
 swapon $DISK$SWAP_NUMBER
 
+# Mount
 mount $DISK$ROOT_NUMBER /mnt
 mkdir -p /mnt/efi
 mount $DISK$EFI_NUMBER /mnt/efi
 
+
+# Bootstrap
 pacstrap /mnt \
     base \
     linux \
@@ -63,7 +72,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 cp $POST_PATH /mnt$POST_PATH
 
-# CHROOT
+# chroot and execute chroot script.
 arch-chroot /mnt "/bin/bash" $POST_PATH
 
 umount -R /mnt
