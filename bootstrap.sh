@@ -5,12 +5,14 @@
 set -e
 
 echo "Prior to running this script please partition disk like following"
-echo "EFI partition: /dev/sda1"
-echo "swap partition: /dev/sda2"
-echo "root partition: /dev/sda3"
-read -p "Now enter disk root name (example /dev/sda): \n>>> " DISK
-echo "Will be using ${DISK}"
-echo "Disk will be wiped in 10 seconds. Press Ctrl + C if you're not sure."
+echo "    EFI partition: /dev/sda1"
+echo "    swap partition: /dev/sda2"
+echo "    root partition: /dev/sda3"
+echo
+echo "Now enter disk root name (example /dev/sda):"
+read -p ">>> " DISK
+echo "Will be using $DISK"
+echo "$DISK will be wiped in 10 seconds. Press Ctrl + C if want to cancel."
 sleep 10
 
 EFI_NUMBER=1
