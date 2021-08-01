@@ -1,4 +1,5 @@
-read -p 'Enter machine address' MACHINE_ADDRESS
+echo "Enter machine address"
+read -p ">>> " MACHINE_ADDRESS
 
 touch /tmp/arch-install-auth-ssh
 

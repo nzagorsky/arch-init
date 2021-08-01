@@ -1,6 +1,7 @@
 set -e
 
-read -p "Enter your username" user
+echo "Enter your username"
+read -p ">>> " user
 HOSTNAME=$user-pc
 USERNAME=$user
 
