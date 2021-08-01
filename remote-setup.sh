@@ -1,4 +1,6 @@
-curl --silent https://raw.githubusercontent.com/nzagorsky/arch-init/master/bootstrap.sh /root/bootstrap.sh
-curl --silent https://raw.githubusercontent.com/nzagorsky/arch-init/master/arch-post.sh /root/arch-post.sh
+# Usage: 
+# curl -sfL git.io/JB9ki | sh -
+curl --silent https://raw.githubusercontent.com/nzagorsky/arch-init/master/bootstrap.sh --output /root/bootstrap.sh
+curl --silent https://raw.githubusercontent.com/nzagorsky/arch-init/master/arch-post.sh --output /root/arch-post.sh
 
 bash bootstrap.sh
