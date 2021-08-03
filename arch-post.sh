@@ -13,6 +13,7 @@ setup_users() {
     echo "Setting password for $USERNAME"
     passwd $USERNAME
     usermod -aG docker $USERNAME
+    chsh $USERNAME -s $(which zsh)
 
     # Sudo
     echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers

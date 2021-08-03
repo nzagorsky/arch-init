@@ -66,9 +66,6 @@ pacstrap /mnt \
     alacritty \
     lm_sensors \
     stress \
-    deja-dup \
-    rustup \
-    go \
     tmux \
     zsh \
     docker
