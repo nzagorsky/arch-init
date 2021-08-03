@@ -81,9 +81,7 @@ test_setup() {
 
     # ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost  #  TODO debug remove me
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost "bash bootstrap.sh"
-
-
-    sleep 36000 || kill $server_pid
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost "reboot"
 
 }
 

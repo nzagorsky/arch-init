@@ -16,9 +16,9 @@ setup_user() {
     USERNAME=$USERNAME
     useradd -m -G wheel -s /bin/bash $USERNAME
     echo "Setting password for ROOT"
-    echo -e "$PASSWORD\n$PASSWORD" passwd
+    echo -e "$PASSWORD\n$PASSWORD" | passwd
     echo "Setting password for $USERNAME"
-    echo -e "$PASSWORD\n$PASSWORD" passwd $USERNAME
+    echo -e "$PASSWORD\n$PASSWORD" | passwd $USERNAME
     usermod -aG docker $USERNAME
     chsh $USERNAME -s $(which zsh)
 
