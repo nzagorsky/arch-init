@@ -5,24 +5,34 @@ set -e
 
 ZONE="Europe/Moscow"
 POST_PATH="/root/arch-post.sh"
+CONFIG_PATH="/root/bootstrap_config"
 
 # Ensure arch-post.sh is present
 cat $POST_PATH > /dev/null
+source $CONFIG_PATH || echo No config found
 
-echo "Prior to running this script please partition disk like following"
-echo "    EFI partition: /dev/sda1"
-echo "    swap partition: /dev/sda2"
-echo "    root partition: /dev/sda3"
-echo
-echo "OR in case of no EFI support"
-echo "    swap partition: /dev/sda1"
-echo "    root partition: /dev/sda2"
-echo
-echo "Now enter disk root name (example /dev/sda):"
-read -p ">>> " DISK
-echo "Will be using $DISK"
-echo "$DISK will be wiped in 10 seconds. Press Ctrl + C if want to cancel."
-sleep 10
+get_disk() {
+    if [ -z ${DISK+x} ];
+    then
+        echo "Prior to running this script please partition disk like following"
+        echo "    EFI partition: /dev/sda1"
+        echo "    swap partition: /dev/sda2"
+        echo "    root partition: /dev/sda3"
+        echo
+        echo "OR in case of no EFI support"
+        echo "    swap partition: /dev/sda1"
+        echo "    root partition: /dev/sda2"
+        echo
+        echo "Now enter disk root name (example /dev/sda):"
+        read -p ">>> " DISK
+    else
+        echo "Disk name taken from config";
+    fi
+
+    echo "Will be using $DISK"
+    echo "$DISK will be wiped in 10 seconds. Press Ctrl + C if want to cancel."
+    sleep 10
+}
 
 
 init() {
@@ -41,8 +51,22 @@ prepare_disk() {
         EFI_PARTITION=$(echo "$PARTITIONS_LIST" | grep 1$)
         SWAP_PARTITION=$(echo "$PARTITIONS_LIST" | grep 2$)
         ROOT_PARTITION=$(echo "$PARTITIONS_LIST" | grep 3$)
+
+        # TODO calculate swap size automatically
+        wipefs -a $DISK
+        yes | parted $DISK mklabel gpt
+        yes | parted $DISK mkpart P1 fat32 1MiB 257MiB
+        yes | parted $DISK set 1 esp on
+        yes | parted $DISK mkpart P2 linux-swap 257MiB 2305MiB
+        yes | parted $DISK mkpart P3 ext4 2305MiB 100%
+
         mkfs.fat -F 32 $EFI_PARTITION
     else
+        wipefs -a $DISK
+        yes | parted $DISK mklabel msdos
+        yes | parted $DISK mkpart primary linux-swap 257MiB 2305MiB
+        yes | parted $DISK mkpart primary ext4 2305MiB 100%
+
         if [ "$PARTITION_TYPE" = "gpt" ]; then
             echo "You're trying to use GPT on non-EFI system, this is not supported"
             exit 1
@@ -67,12 +91,19 @@ prepare_disk() {
 
 }
 
+# TODO add xfce4 and startx config
 bootstrap() {
+    # Set mirrors
+    rm -rf /var/lib/pacman/sync/
+    reflector -c Russia > /etc/pacman.d/mirrorlist
+    pacman -Syy
+
     # Bootstrap
     pacstrap /mnt \
         base \
         linux \
         linux-firmware \
+        reflector \
         neovim \
         git \
         stow \
@@ -95,10 +126,13 @@ bootstrap() {
 
     genfstab -U /mnt >> /mnt/etc/fstab
     cp $POST_PATH /mnt$POST_PATH
+    cp $CONFIG_PATH /mnt$CONFIG_PATH
 }
 
 finalize() {
     umount -R /mnt
+    rm $POST_PATH
+    rm $CONFIG_PATH
 
     echo
     echo
@@ -109,6 +143,7 @@ finalize() {
 ### ACTUAL SCRIPT ###
 
 init
+get_disk
 prepare_disk
 bootstrap
 

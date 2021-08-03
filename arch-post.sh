@@ -1,17 +1,24 @@
 set -e
 
-echo "Enter your username"
-read -p ">>> " user
-HOSTNAME=$user-pc
-USERNAME=$user
+CONFIG_PATH="/root/bootstrap_config"
+source $CONFIG_PATH || echo No config found
+
+get_username() {
+    if [ -z ${USERNAME+x} ];
+    then
+        echo "Enter your username"
+        read -p ">>> " USERNAME
+    fi;
+}
 
 # Add user and set passwords
-setup_users() {
+setup_user() {
+    USERNAME=$USERNAME
     useradd -m -G wheel -s /bin/bash $USERNAME
     echo "Setting password for ROOT"
-    passwd
+    echo -e "$PASSWORD\n$PASSWORD" passwd
     echo "Setting password for $USERNAME"
-    passwd $USERNAME
+    echo -e "$PASSWORD\n$PASSWORD" passwd $USERNAME
     usermod -aG docker $USERNAME
     chsh $USERNAME -s $(which zsh)
 
@@ -20,6 +27,8 @@ setup_users() {
 }
 
 setup_system() {
+    HOSTNAME=$USERNAME-pc
+
     # Setup clock
     ln -sf /usr/share/zoneinfo/$ZONE /etc/localtime
     hwclock --systohc
@@ -51,9 +60,16 @@ enable_services() {
     systemctl enable docker
 }
 
-setup_users
+finalize() {
+    rm $POST_PATH  || echo "Failed to delete $POST_PATH"
+    rm $CONFIG_PATH  || echo "Failed to delete $CONFIG_PATH"
+}
+
+get_username
+setup_user
 setup_system
 enable_services
+finalize
 
 echo "Setup is finished!"
 echo "Exiting chroot."
