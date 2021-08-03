@@ -64,9 +64,7 @@ prepare_disk() {
         mount $EFI_PARTITION /mnt/efi
     fi;
 
-    genfstab -U /mnt >> /mnt/etc/fstab
 
-    cp $POST_PATH /mnt$POST_PATH
 }
 
 bootstrap() {
@@ -93,6 +91,9 @@ bootstrap() {
         tmux \
         zsh \
         docker
+
+    genfstab -U /mnt >> /mnt/etc/fstab
+    cp $POST_PATH /mnt$POST_PATH
 }
 
 finalize() {
