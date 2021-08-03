@@ -6,39 +6,53 @@ HOSTNAME=$user-pc
 USERNAME=$user
 
 # Add user and set passwords
-useradd -m -G wheel -s /bin/bash $USERNAME
-echo "Setting password for ROOT"
-passwd
-echo "Setting password for $USERNAME"
-passwd $USERNAME
+setup_users() {
+    useradd -m -G wheel -s /bin/bash $USERNAME
+    echo "Setting password for ROOT"
+    passwd
+    echo "Setting password for $USERNAME"
+    passwd $USERNAME
+    usermod -aG docker $USERNAME
 
-# Setup clock
-ln -sf /usr/share/zoneinfo/$ZONE /etc/localtime
-hwclock --systohc
+    # Sudo
+    echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+}
 
-# Locale
-echo LANG=en_US.UTF-8 > /etc/locale.conf
-sed --in-place=.bak 's/^#en_US\.UTF-8/en_US\.UTF-8/' /etc/locale.gen
-locale-gen
+setup_system() {
+    # Setup clock
+    ln -sf /usr/share/zoneinfo/$ZONE /etc/localtime
+    hwclock --systohc
 
-# Hostname
-echo $HOSTNAME > /etc/hostname
+    # Locale
+    echo LANG=en_US.UTF-8 > /etc/locale.conf
+    sed --in-place=.bak 's/^#en_US\.UTF-8/en_US\.UTF-8/' /etc/locale.gen
+    locale-gen
 
-# Bootloader
-grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
-grub-mkconfig -o /boot/grub/grub.cfg
+    echo $HOSTNAME > /etc/hostname
 
-# Sudo
-echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-usermod -aG docker $USERNAME
+    if ls /sys/firmware/efi/efivars > /dev/null 2>&1; then
+        grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
+    else
+        ROOT_PARTITION_NAME=$(df -hT | grep /$ | awk '{print $1}')
+        ROOT_DISK_NAME="/dev/$(lsblk -no pkname $ROOT_PARTITION_NAME)"
+        grub-install --target=i386-pc --recheck $ROOT_DISK_NAME
+    fi;
 
-# Enable services
-systemctl enable gdm 2> /dev/null || test 1
-systemctl enable bluetooth 2> /dev/null || test 1
-systemctl enable systemd-networkd
-systemctl enable systemd-resolved
-systemctl enable NetworkManager.service
-systemctl enable docker
+    grub-mkconfig -o /boot/grub/grub.cfg
+}
 
-echo "Setup is finished"
-echo "Exiting chroot"
+enable_services() {
+    # Enable services
+    systemctl enable gdm 2> /dev/null || test 1
+    systemctl enable bluetooth 2> /dev/null || test 1
+    systemctl enable systemd-resolved
+    systemctl enable NetworkManager.service
+    systemctl enable docker
+}
+
+setup_users
+setup_system
+enable_services
+
+echo "Setup is finished!"
+echo "Exiting chroot."

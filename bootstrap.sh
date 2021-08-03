@@ -15,9 +15,14 @@ echo "Will be using $DISK"
 echo "$DISK will be wiped in 10 seconds. Press Ctrl + C if want to cancel."
 sleep 10
 
+PARTITIONS_LIST=$(fdisk -l $DISK -o Device | grep $DISK | grep -v "Disk\|Sectors")
 EFI_NUMBER=1
 SWAP_NUMBER=2
 ROOT_NUMBER=3
+EFI_PARTITION=$(echo "$PARTITIONS_LIST" | grep "$EFI_NUMBER"$)
+SWAP_PARTITION=$(echo "$PARTITIONS_LIST" | grep "$SWAP_NUMBER"$)
+ROOT_PARTITION=$(echo "$PARTITIONS_LIST" | grep "$ROOT_NUMBER"$)
+
 ZONE="Europe/Moscow"
 POST_PATH="/root/arch-post.sh"
 
@@ -31,15 +36,15 @@ swapoff -a || test 1
 timedatectl set-ntp true
 
 # Prepare disks
-mkfs.ext4 $DISK$ROOT_NUMBER
-mkfs.fat -F 32 $DISK$EFI_NUMBER
-mkswap $DISK$SWAP_NUMBER
-swapon $DISK$SWAP_NUMBER
+mkfs.ext4 $ROOT_PARTITION
+mkfs.fat -F 32 $EFI_PARTITION
+mkswap $SWAP_PARTITION
+swapon $SWAP_PARTITION
 
 # Mount
-mount $DISK$ROOT_NUMBER /mnt
+mount $ROOT_PARTITION /mnt
 mkdir -p /mnt/efi
-mount $DISK$EFI_NUMBER /mnt/efi
+mount $EFI_PARTITION /mnt/efi
 
 
 # Bootstrap
@@ -56,10 +61,8 @@ pacstrap /mnt \
     sudo \
     grub \
     efibootmgr \
-    npm \
     htop \
     networkmanager \
-    gdm \
     alacritty \
     lm_sensors \
     stress \
