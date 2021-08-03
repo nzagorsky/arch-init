@@ -79,6 +79,7 @@ bootstrap() {
         wget \
         curl \
         xorg \
+        xorg-xinit \
         sudo \
         grub \
         which \
