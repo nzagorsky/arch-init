@@ -9,28 +9,41 @@ CONFIG_PATH="/root/bootstrap_config"
 
 # Ensure arch-post.sh is present
 cat $POST_PATH > /dev/null
-source $CONFIG_PATH || echo No config found
+
+update_mirrors_and_install_deps() {
+    # Set mirrors
+    rm -rf /var/lib/pacman/sync/
+    reflector -c Russia > /etc/pacman.d/mirrorlist
+    pacman -Syy
+
+    pacman -S --needed --noconfirm dialog
+}
+
+gather_config() {
+	name=$(dialog --inputbox "First, please enter a name for the user account." 10 60 3>&1 1>&2 2>&3 3>&1) || exit 1
+	while ! echo "$name" | grep -q "^[a-z_][a-z0-9_-]*$"; do
+		name=$(dialog --no-cancel --inputbox "Username not valid. Give a username beginning with a letter, with only lowercase letters, - or _." 10 60 3>&1 1>&2 2>&3 3>&1)
+	done;
+
+	pass1=$(dialog --no-cancel --passwordbox "Enter a password for that user." 10 60 3>&1 1>&2 2>&3 3>&1)
+	pass2=$(dialog --no-cancel --passwordbox "Retype password." 10 60 3>&1 1>&2 2>&3 3>&1)
+	while ! [ "$pass1" = "$pass2" ]; do
+		unset pass2
+		pass1=$(dialog --no-cancel --passwordbox "Passwords do not match.\\n\\nEnter password again." 10 60 3>&1 1>&2 2>&3 3>&1)
+		pass2=$(dialog --no-cancel --passwordbox "Retype password." 10 60 3>&1 1>&2 2>&3 3>&1)
+	done ;
+
+    disk=$(dialog --inputbox "Enter disk name to destroy and install stuff to.\\n\\nExample: /dev/sda" 10 60 3>&1 1>&2 2>&3 3>&1)
+	while ! ls $disk; do
+		disk=$(dialog --no-cancel --inputbox "Disk path is not valid. \\n\\nProper disk example: /dev/sda OR /dev/nvme0n1" 10 60 3>&1 1>&2 2>&3 3>&1)
+    done;
+
+    printf "export USERNAME=$name\nexport PASSWORD=$pass1\nexport DISK=$disk" > $CONFIG_PATH
+}
 
 get_disk() {
-    if [ -z ${DISK+x} ];
-    then
-        echo "Prior to running this script please partition disk like following"
-        echo "    EFI partition: /dev/sda1"
-        echo "    swap partition: /dev/sda2"
-        echo "    root partition: /dev/sda3"
-        echo
-        echo "OR in case of no EFI support"
-        echo "    swap partition: /dev/sda1"
-        echo "    root partition: /dev/sda2"
-        echo
-        echo "Now enter disk root name (example /dev/sda):"
-        read -p ">>> " DISK
-    else
-        echo "Disk name taken from config";
-    fi
-
-    echo "Will be using $DISK"
-    echo "$DISK will be wiped in 10 seconds. Press Ctrl + C if want to cancel."
+    echo
+    echo "'$DISK' will be wiped in 10 seconds. Press Ctrl + C if you want to cancel."
     sleep 10
 }
 
@@ -39,20 +52,13 @@ init() {
     timedatectl set-ntp true
 }
 
+# TODO calculate swap size automatically or take as a user input
 prepare_disk() {
     # Cleanup from previous runs if there were any.
     umount -R /mnt || test 1
     swapoff -a || test 1
 
-    PARTITIONS_LIST=$(fdisk -l $DISK -o Device | grep $DISK | grep -v "Disk\|Sectors")
-    PARTITION_TYPE=$(parted /dev/sda print | grep "Partition Table" | awk '{print $3}')
-
     if ls /sys/firmware/efi/efivars > /dev/null 2>&1; then
-        EFI_PARTITION=$(echo "$PARTITIONS_LIST" | grep 1$)
-        SWAP_PARTITION=$(echo "$PARTITIONS_LIST" | grep 2$)
-        ROOT_PARTITION=$(echo "$PARTITIONS_LIST" | grep 3$)
-
-        # TODO calculate swap size automatically
         wipefs -a $DISK
         yes | parted $DISK mklabel gpt
         yes | parted $DISK mkpart P1 fat32 1MiB 257MiB
@@ -60,6 +66,10 @@ prepare_disk() {
         yes | parted $DISK mkpart P2 linux-swap 257MiB 2305MiB
         yes | parted $DISK mkpart P3 ext4 2305MiB 100%
 
+        PARTITIONS_LIST=$(fdisk -l $DISK -o Device | grep $DISK | grep -v "Disk\|Sectors")
+        EFI_PARTITION=$(echo "$PARTITIONS_LIST" | grep 1$)
+        SWAP_PARTITION=$(echo "$PARTITIONS_LIST" | grep 2$)
+        ROOT_PARTITION=$(echo "$PARTITIONS_LIST" | grep 3$)
         mkfs.fat -F 32 $EFI_PARTITION
     else
         wipefs -a $DISK
@@ -67,11 +77,7 @@ prepare_disk() {
         yes | parted $DISK mkpart primary linux-swap 257MiB 2305MiB
         yes | parted $DISK mkpart primary ext4 2305MiB 100%
 
-        if [ "$PARTITION_TYPE" = "gpt" ]; then
-            echo "You're trying to use GPT on non-EFI system, this is not supported"
-            exit 1
-        fi;
-
+        PARTITIONS_LIST=$(fdisk -l $DISK -o Device | grep $DISK | grep -v "Disk\|Sectors")
         SWAP_PARTITION=$(echo "$PARTITIONS_LIST" | grep 1$)
         ROOT_PARTITION=$(echo "$PARTITIONS_LIST" | grep 2$)
     fi;
@@ -91,13 +97,7 @@ prepare_disk() {
 
 }
 
-# TODO add xfce4 and startx config
 bootstrap() {
-    # Set mirrors
-    rm -rf /var/lib/pacman/sync/
-    reflector -c Russia > /etc/pacman.d/mirrorlist
-    pacman -Syy
-
     # Bootstrap
     pacstrap /mnt \
         base \
@@ -141,7 +141,13 @@ finalize() {
 
 
 ### ACTUAL SCRIPT ###
-
+update_mirrors_and_install_deps
+echo "Starting gathering"
+if [ ! -f $CONFIG_PATH ]; then
+    echo "Started gathering"
+    gather_config
+fi
+source $CONFIG_PATH
 init
 get_disk
 prepare_disk

@@ -77,11 +77,11 @@ test_setup() {
     # Copy scripts.
     scp -P 10022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts  ../bootstrap.sh root@localhost:/root/bootstrap.sh
     scp -P 10022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts  ../arch-post.sh root@localhost:/root/arch-post.sh
-    scp -P 10022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts  bootstrap_config root@localhost:/root/bootstrap_config
+    # scp -P 10022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts  bootstrap_config root@localhost:/root/bootstrap_config
 
     # ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost  #  TODO debug remove me
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost "bash bootstrap.sh"
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost "reboot"
+    ssh -t -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost sh bootstrap.sh
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/.archiso.hosts -p 10022 root@localhost reboot || exit 0
 
 }
 

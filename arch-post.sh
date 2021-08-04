@@ -1,15 +1,7 @@
 set -e
 
 CONFIG_PATH="/root/bootstrap_config"
-source $CONFIG_PATH || echo No config found
-
-get_username() {
-    if [ -z ${USERNAME+x} ];
-    then
-        echo "Enter your username"
-        read -p ">>> " USERNAME
-    fi;
-}
+source $CONFIG_PATH
 
 # Add user and set passwords
 setup_user() {
