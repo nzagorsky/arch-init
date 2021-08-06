@@ -53,11 +53,9 @@ enable_services() {
 }
 
 finalize() {
-    rm $POST_PATH  || echo "Failed to delete $POST_PATH"
     rm $CONFIG_PATH  || echo "Failed to delete $CONFIG_PATH"
 }
 
-get_username
 setup_user
 setup_system
 enable_services
