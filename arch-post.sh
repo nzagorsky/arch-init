@@ -33,7 +33,7 @@ setup_system() {
     echo $HOSTNAME > /etc/hostname
 
     if ls /sys/firmware/efi/efivars > /dev/null 2>&1; then
-        grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
+        grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ARCH
     else
         ROOT_PARTITION_NAME=$(df -hT | grep /$ | awk '{print $1}')
         ROOT_DISK_NAME="/dev/$(lsblk -no pkname $ROOT_PARTITION_NAME)"

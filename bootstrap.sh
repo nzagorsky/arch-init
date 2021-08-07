@@ -88,10 +88,10 @@ prepare_disk() {
 
     # Mount
     mount $ROOT_PARTITION /mnt
-    mkdir -p /mnt/efi
+    mkdir -p /mnt/boot/efi
 
     if ls /sys/firmware/efi/efivars > /dev/null 2>&1; then
-        mount $EFI_PARTITION /mnt/efi
+        mount $EFI_PARTITION /mnt/boot/efi
     fi;
 
 
@@ -122,6 +122,8 @@ bootstrap() {
         stress \
         tmux \
         zsh \
+        gnome \
+        gnome-extra \
         docker
 
     genfstab -U /mnt >> /mnt/etc/fstab
